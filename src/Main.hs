@@ -18,6 +18,8 @@ import Control.Monad.Logger
 import Control.Monad.Trans.Resource
 import Control.Applicative (pure)
 
+import Templates
+
 idToHash :: Int -> [Char]
 idToHash i | i <= 0 = error "invalid id"
 idToHash i = let numberOfChars = length ['a'..'z']
@@ -45,28 +47,13 @@ main = do
     runResourceT $ runStderrLoggingT $ Db.runSqlite "app.db" $ Db.runMigration migrateAll
     runStderrLoggingT $ Db.withSqlitePool "app.db" 10 $ \pool -> liftIO $ scotty 3000 $ do
         S.get "/" $ do
-            html $ renderHtml [shamlet|
-                <html>
-                    <head>
-                        <title>Tiny Url Shortener
-                    <body>
-                        <h1>NanoUrlShortener 0.0.1
-                        <form action=/ method=post>
-                            <input name=url type=text placeholder=Url to short>
-                            <input type=submit>
-            |]
+            html $ renderHtml indexTpl
 
         post "/" $ do
             (urlToShort :: String) <- param "url"
             urlId <- liftIO $ flip Db.runSqlPersistMPool pool $ Db.insert $ (ShortUrl urlToShort)
-            html $ renderHtml [shamlet|
-                <html>
-                    <head>
-                        <title>Tiny Url Shortener
-                    <body>
-                        <h1>Get your shortened link
-                        <p>http://localhost:3000/#{idToHash (fromIntegral $ Db.fromSqlKey urlId)}
-            |]
+            html $ renderHtml $ doneTpl $ T.pack . idToHash . fromIntegral $ Db.fromSqlKey urlId
+
         S.get "/:urlHash" $ do
             (urlHash :: String) <- param "urlHash"
             unshortUrl <- liftIO $ flip Db.runSqlPersistMPool pool $ Db.get
@@ -77,8 +64,8 @@ main = do
                     setHeader "location" (T.pack u)
                 Nothing -> do
                     status notFound404
-                    html "<h1>404 Not Found</h1>"
+                    html $ renderHtml notFoundTpl
 
         notFound $ do
             status notFound404
-            html "<h1>404 Not Found</h1>"
+            html $ renderHtml notFoundTpl
