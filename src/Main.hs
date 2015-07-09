@@ -54,7 +54,7 @@ main = do
             urlId <- liftIO $ flip Db.runSqlPersistMPool pool $ Db.insert $ (ShortUrl urlToShort)
             html $ renderHtml $ doneTpl $ T.pack . idToHash . fromIntegral $ Db.fromSqlKey urlId
 
-        S.get "/:urlHash" $ do
+        S.get "/s/:urlHash" $ do
             (urlHash :: String) <- param "urlHash"
             unshortUrl <- liftIO $ flip Db.runSqlPersistMPool pool $ Db.get
                         $ (Db.toSqlKey $ fromIntegral $ hashToId urlHash)

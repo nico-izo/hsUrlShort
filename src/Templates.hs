@@ -4,25 +4,36 @@ module Templates (indexTpl, notFoundTpl, doneTpl) where
 
 import Text.Hamlet
 import Data.Text.Lazy as T (Text (..), pack)
+import Styles (mainCss)
 
-base :: Html -> Text -> Html
-base body title = [shamlet|
+base_ :: Html -> Text -> Text -> Html
+base_ body title style = [shamlet|
 $doctype 5
 <html>
     <head>
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css" />
+        <style>
+            #{style}
         <title>hsUrlShort — #{title}
     <body>
-        #{body}
+        <div class="container">
+            #{body}
 |]
+
+base :: Html -> Text -> Html
+base body title = base_ body title mainCss
 
 indexTpl :: Html
 indexTpl = base body "Main page"
            where body = [shamlet|
-<h1>hsUrlShort 0.1.0.0
-<form action="/" method="post">
-    <input name="url" type="text" placeholder="Url to short" value="http://" />
-    <input type="submit" />
+<form class="form-urlshort" action="/" method="post">
+    <h2 class="form-shorturl-heading">Type your URL
+    <label for="inputUrl" class="sr-only">Url to short
+    <input name="url" type="url" id="inputUrl" class="form-control" placeholder="Url to short" required autofocus />
+    <button class="btn btn-lg btn-primary btn-block" type="submit">Shorten!
 |]
         
 notFoundTpl :: Html
@@ -36,5 +47,5 @@ doneTpl :: Text -> Html
 doneTpl url = base body "Get your URL"
            where body = [shamlet|
 <h1>Get your shortened link
-<p>http://localhost:3000/#{url}
+<p>http://localhost:3000/s/#{url}
 |]
