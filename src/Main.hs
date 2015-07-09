@@ -17,6 +17,8 @@ import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Logger
 import Control.Monad.Trans.Resource
 import Control.Applicative (pure)
+import System.Environment (getEnv)
+import Control.Exception (try, SomeException)
 
 import Templates
 
@@ -44,8 +46,12 @@ ShortUrl
 
 main :: IO ()
 main = do
+    port_ <- try (getEnv "PORT" >>= return . read) :: IO (Either SomeException Int)
+    (port :: Int) <- case port_ of
+        Right p -> return p
+        Left _ -> return 3000
     runResourceT $ runStderrLoggingT $ Db.runSqlite "app.db" $ Db.runMigration migrateAll
-    runStderrLoggingT $ Db.withSqlitePool "app.db" 10 $ \pool -> liftIO $ scotty 3000 $ do
+    runStderrLoggingT $ Db.withSqlitePool "app.db" 10 $ \pool -> liftIO $ scotty port $ do
         S.get "/" $ do
             html $ renderHtml indexTpl
 
