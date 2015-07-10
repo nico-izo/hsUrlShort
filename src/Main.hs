@@ -9,14 +9,12 @@ import Data.Text.Lazy as T (pack)
 import Database.Persist
 import Database.Persist.TH
 import qualified Database.Persist.Sqlite as Db
-import Text.Hamlet
 import Web.Scotty as S
 import Network.HTTP.Types
 import Text.Blaze.Html.Renderer.Text (renderHtml)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Logger
 import Control.Monad.Trans.Resource
-import Control.Applicative (pure)
 import System.Environment (getEnv)
 import Control.Exception (try, SomeException)
 
