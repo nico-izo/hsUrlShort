@@ -4,7 +4,7 @@
 
 module Main where
 import Data.Char (ord, chr)
-import Data.Time.Clock
+import Data.Time.Clock (UTCTime, getCurrentTime)
 import Data.Text.Lazy as T (pack)
 import Database.Persist
 import Database.Persist.TH
@@ -41,6 +41,8 @@ hashToId str = let numberOfChars = length ['a'..'z']
 share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
 ShortUrl
     origUrl String
+    created UTCTime
+    followed Int
     deriving Show
 |]
 
@@ -57,15 +59,18 @@ main = do
 
         post "/" $ do
             (urlToShort :: String) <- param "url"
-            urlId <- liftIO $ flip Db.runSqlPersistMPool pool $ Db.insert $ (ShortUrl urlToShort)
+            time <- liftIO getCurrentTime
+            urlId <- liftIO $ flip Db.runSqlPersistMPool pool 
+                   $ Db.insert $ (ShortUrl urlToShort time 0)
             html $ renderHtml $ doneTpl $ T.pack . idToHash . fromIntegral $ Db.fromSqlKey urlId
 
         S.get "/s/:urlHash" $ do
             (urlHash :: String) <- param "urlHash"
-            unshortUrl <- liftIO $ flip Db.runSqlPersistMPool pool $ Db.get
-                        $ (Db.toSqlKey $ fromIntegral $ hashToId urlHash)
+            urlKey <- return $ Db.toSqlKey $ fromIntegral $ hashToId urlHash
+            unshortUrl <- liftIO $ flip Db.runSqlPersistMPool pool $ Db.get urlKey
             case unshortUrl of
-                Just (ShortUrl u) -> do
+                Just (ShortUrl u _ _) -> do
+                    liftIO $ flip Db.runSqlPersistMPool pool $ Db.updateWhere [ShortUrlId ==. urlKey] [ShortUrlFollowed +=. 1]
                     status status302
                     setHeader "location" (T.pack u)
                 Nothing -> do
