@@ -75,6 +75,17 @@ main = do
                     status notFound404
                     html $ renderHtml notFoundTpl
 
+        S.get "/i/:urlHash" $ do
+            (urlHash :: String) <- param "urlHash"
+            urlKey <- return $ Db.toSqlKey $ fromIntegral $ hashToId urlHash
+            unshortUrl <- liftIO $ flip Db.runSqlPersistMPool pool $ Db.get urlKey
+            case unshortUrl of
+                Just (ShortUrl url time clicks) -> do
+                    html $ renderHtml $ infoTpl time clicks (T.pack url) (T.pack urlHash)
+                Nothing -> do
+                    status notFound404
+                    html $ renderHtml notFoundTpl
+
         notFound $ do
             status notFound404
             html $ renderHtml notFoundTpl

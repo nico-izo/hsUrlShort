@@ -1,9 +1,13 @@
 {-# LANGUAGE QuasiQuotes, OverloadedStrings #-}
 
-module Templates (indexTpl, notFoundTpl, doneTpl) where
+module Templates (indexTpl, notFoundTpl, doneTpl, infoTpl) where
 
 import Text.Hamlet
-import Data.Text.Lazy as T (Text (..), pack)
+import Data.Text.Lazy as T
+import System.Locale (defaultTimeLocale, rfc822DateFormat)
+import Data.Time.Format (formatTime)
+import Data.Time.Clock (UTCTime)
+import Data.Monoid
 import Styles (mainCss)
 
 base_ :: Html -> Text -> Text -> Html
@@ -38,14 +42,27 @@ indexTpl = base body "Main page"
         
 notFoundTpl :: Html
 notFoundTpl = base body "404 Not Found"
-           where body = [shamlet|
+              where body = [shamlet|
 <h1>404 Not Found
 <p>Sorry, but we can't find requested URL.
 |]
 
 doneTpl :: Text -> Html
 doneTpl url = base body "Get your URL"
-           where body = [shamlet|
+              where body = [shamlet|
 <h1>Get your shortened link
 <p>http://localhost:3000/s/#{url}
+|]
+
+infoTpl :: UTCTime -> Int -> Text -> Text -> Html
+infoTpl time clicks url key = base body ("Information about #" <> key)
+                          where body = [shamlet|
+<h2>Some information about shortened #{url}
+<ul>
+    <li>
+        <b>Created:
+        #{formatTime defaultTimeLocale rfc822DateFormat time}
+    <li>
+        <b>Clicks:
+        #{show clicks}
 |]
