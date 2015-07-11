@@ -20,7 +20,7 @@ import Control.Exception (try, SomeException)
 
 import Templates
 
-idToHash :: Int -> [Char]
+idToHash :: Int -> String
 idToHash i | i <= 0 = error "invalid id"
 idToHash i = let numberOfChars = length ['a'..'z']
                  firstCharNum = ord 'a'
@@ -29,12 +29,12 @@ idToHash i = let numberOfChars = length ['a'..'z']
            $ takeWhile (/= 0) 
            $ iterate (`div` numberOfChars) i
 
-hashToId :: [Char] -> Int
+hashToId :: String -> Int
 hashToId str | str == "" = error "empty string"
 hashToId str = let numberOfChars = length ['a'..'z']
                    firstCharNum = ord 'a'
                    arrOfExps = reverse $ take (length str) $ iterate (* numberOfChars) 1
-             in sum $ zipWith (*) arrOfExps $ map ((+ negate firstCharNum).(ord)) str
+             in sum $ zipWith (*) arrOfExps $ map ((+ negate firstCharNum) . ord) str
 
 share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
 ShortUrl
@@ -52,19 +52,19 @@ main = do
         Left _ -> return 3000
     runResourceT $ runStderrLoggingT $ Db.runSqlite "app.db" $ Db.runMigration migrateAll
     runStderrLoggingT $ Db.withSqlitePool "app.db" 10 $ \pool -> liftIO $ scotty port $ do
-        S.get "/" $ do
+        S.get "/" $
             html $ renderHtml indexTpl
 
         post "/" $ do
             (urlToShort :: String) <- param "url"
             time <- liftIO getCurrentTime
             urlId <- liftIO $ flip Db.runSqlPersistMPool pool 
-                   $ Db.insert $ (ShortUrl urlToShort time 0)
+                   $ Db.insert $ ShortUrl urlToShort time 0
             html $ renderHtml $ doneTpl $ T.pack . idToHash . fromIntegral $ Db.fromSqlKey urlId
 
         S.get "/s/:urlHash" $ do
             (urlHash :: String) <- param "urlHash"
-            urlKey <- return $ Db.toSqlKey $ fromIntegral $ hashToId urlHash
+            let urlKey = Db.toSqlKey $ fromIntegral $ hashToId urlHash
             unshortUrl <- liftIO $ flip Db.runSqlPersistMPool pool $ Db.get urlKey
             case unshortUrl of
                 Just (ShortUrl u _ _) -> do
@@ -77,11 +77,11 @@ main = do
 
         S.get "/i/:urlHash" $ do
             (urlHash :: String) <- param "urlHash"
-            urlKey <- return $ Db.toSqlKey $ fromIntegral $ hashToId urlHash
+            let urlKey = Db.toSqlKey $ fromIntegral $ hashToId urlHash
             unshortUrl <- liftIO $ flip Db.runSqlPersistMPool pool $ Db.get urlKey
             case unshortUrl of
-                Just (ShortUrl url time clicks) -> do
-                    html $ renderHtml $ infoTpl time clicks (T.pack url) (T.pack urlHash)
+                Just (ShortUrl url time clicks) -> html $
+                    renderHtml $ infoTpl time clicks (T.pack url) (T.pack urlHash)
                 Nothing -> do
                     status notFound404
                     html $ renderHtml notFoundTpl
