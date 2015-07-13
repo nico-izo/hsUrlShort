@@ -4,6 +4,9 @@
 
 module Main where
 import Data.Char (ord, chr)
+import Data.List (isPrefixOf)
+import Data.Foldable (foldMap)
+import Data.Monoid
 import Data.Time.Clock (UTCTime, getCurrentTime)
 import Data.Text.Lazy as T (pack)
 import Database.Persist
@@ -36,6 +39,10 @@ hashToId str = let numberOfChars = length ['a'..'z']
                    arrOfExps = reverse $ take (length str) $ iterate (* numberOfChars) 1
              in sum $ zipWith (*) arrOfExps $ map ((+ negate firstCharNum) . ord) str
 
+prefixHttp :: String -> String
+prefixHttp url = let hasPrefix = getAny $ foldMap (Any.(`isPrefixOf` url)) ["http://", "https://", "//"]
+               in if not hasPrefix then "http://" <> url else url
+
 share [mkPersist sqlSettings, mkMigrate "migrateAll"] [persistLowerCase|
 ShortUrl
     origUrl String
@@ -59,7 +66,7 @@ main = do
             (urlToShort :: String) <- param "url"
             time <- liftIO getCurrentTime
             urlId <- liftIO $ flip Db.runSqlPersistMPool pool 
-                   $ Db.insert $ ShortUrl urlToShort time 0
+                   $ Db.insert $ ShortUrl (prefixHttp urlToShort) time 0
             html $ renderHtml $ doneTpl $ T.pack . idToHash . fromIntegral $ Db.fromSqlKey urlId
 
         S.get "/s/:urlHash" $ do
