@@ -2,7 +2,7 @@
 -- documentation, see http://haskell.org/cabal/users-guide/
 
 name:                hsUrlShort
-version:             0.3.0.0
+version:             0.3.1.0
 synopsis:            Very simple tiny urlshortener
 -- description:         
 homepage:            nico-izo.ru
