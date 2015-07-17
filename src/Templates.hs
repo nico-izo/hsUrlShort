@@ -57,8 +57,11 @@ doneTpl url = base body "Get your URL"
 infoTpl :: UTCTime -> Int -> Text -> Text -> Html
 infoTpl time clicks url key = base body ("Information about #" <> key)
                           where body = [shamlet|
-<h2>Some information about shortened #{url}
+<h2>Some information about shortened url
 <ul>
+    <li>
+        <b>Real URL:
+        <a href="#{url}">#{url}
     <li>
         <b>Created:
         #{formatTime defaultTimeLocale rfc822DateFormat time}
